@@ -58,7 +58,7 @@ FERGO-GRAPH/
 
 ```bash
 git clone <repository-url>
-cd FERGO-GRAPH
+cd your-file
 npm install
 ```
 
