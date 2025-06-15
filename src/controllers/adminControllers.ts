@@ -6,12 +6,13 @@ import {
   paginationUtils, 
   passwordUtils,
   validationUtils,
+  fileUtils,
   logger 
 } from '@/utils/helpers';
 
 export class AdminController {
   // Get dashboard statistics
-  async getDashboardStats(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getDashboardStats(req: AuthenticatedRequest, res: Response): Promise<any | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -34,7 +35,7 @@ export class AdminController {
   }
 
   // Get all users with pagination
-  async getAllUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getAllUsers(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -75,7 +76,7 @@ export class AdminController {
   }
 
   // Create new user (admin only)
-  async createUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async createUser(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -101,9 +102,7 @@ export class AdminController {
       }
 
       // Hash password
-      const passwordHash = await passwordUtils.hash(password);
-
-      // Create user
+      const passwordHash = await passwordUtils.hash(password);      // Create user
       const user = await db.createUser({
         email: validationUtils.sanitizeString(email.toLowerCase()),
         username: validationUtils.sanitizeString(username),
@@ -111,12 +110,14 @@ export class AdminController {
         role: role || 'user'
       });
 
+      logger.debug(`Creating user with role: ${role || 'user'}`);
+
       // Create user profile if additional info provided
       if (first_name || last_name) {
         await db.createUserProfile({
           user_id: user.id,
           first_name: first_name ? validationUtils.sanitizeString(first_name) : undefined,
-          last_name: last_name ? validationUtils.sanitizeString(last_name) : undefined
+          last_name: last_name ? validationUtils.sanitizeString(last_name) : undefined,
         });
       }
 
@@ -138,7 +139,7 @@ export class AdminController {
   }
 
   // Update user role
-  async updateUserRole(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateUserRole(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -183,7 +184,7 @@ export class AdminController {
   }
 
   // Deactivate user
-  async deactivateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async deactivateUser(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -232,7 +233,7 @@ export class AdminController {
   }
 
   // Activate user
-  async activateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async activateUser(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -248,15 +249,13 @@ export class AdminController {
         return res.status(404).json(
           responseUtils.error('User not found')
         );
-      }
-
-      // Activate user
+      }      // Activate user
       const updatedUser = await db.updateUser(userId, { 
         is_active: true,
         activated_at: new Date().toISOString(),
         activated_by: req.user.id,
-        deactivated_at: null,
-        deactivated_by: null
+        deactivated_at: '',
+        deactivated_by: ''
       });
 
       const { password_hash, ...userResponse } = updatedUser;
@@ -276,7 +275,7 @@ export class AdminController {
   }
 
   // Delete user permanently
-  async deleteUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async deleteUser(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -326,7 +325,7 @@ export class AdminController {
   }
 
   // Get system logs/audit trail (placeholder)
-  async getSystemLogs(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getSystemLogs(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -384,7 +383,7 @@ export class AdminController {
   }
 
   // Get storage statistics
-  async getStorageStats(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getStorageStats(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -435,7 +434,7 @@ export class AdminController {
   }
 
   // Reset user password (admin only)
-  async resetUserPassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async resetUserPassword(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -479,7 +478,7 @@ export class AdminController {
   }
 
   // Bulk operations
-  async bulkUserActions(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async bulkUserActions(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -493,9 +492,10 @@ export class AdminController {
         return res.status(400).json(
           responseUtils.error('User IDs array is required')
         );
-      }
-
-      const results = {
+      }      const results: {
+        successful: Array<{ user_id: string; email?: string }>;
+        failed: Array<{ user_id: string; error: string }>;
+      } = {
         successful: [],
         failed: []
       };

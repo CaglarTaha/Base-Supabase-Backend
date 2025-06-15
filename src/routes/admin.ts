@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { adminController } from '@/controllers/adminController';
+import Joi from 'joi';
+import { adminController } from '@/controllers/adminControllers';
 import { authenticate } from '@/middleware/auth';
 import { requireAdmin } from '@/middleware/roleAuth';
 import { validate, validationSchemas } from '@/middleware/validation';
@@ -30,7 +31,7 @@ router.get(
 
 router.post(
   '/users',
-  validate(validationSchemas.register),
+  validate(validationSchemas.createUser),
   adminController.createUser
 );
 
@@ -72,8 +73,8 @@ router.post(
   '/users/bulk-actions',
   validate({
     body: {
-      action: validationSchemas.updateUserRole.body.extract(['role']).rename('action', 'role'),
-      user_ids: require('joi').array().items(require('joi').string().uuid()).min(1).required()
+      action: Joi.string().valid('activate', 'deactivate', 'delete').required(),
+      user_ids: Joi.array().items(Joi.string().uuid()).min(1).required()
     }
   }),
   adminController.bulkUserActions

@@ -77,25 +77,29 @@ export class AuthController {
         responseUtils.error('Registration failed')
       );
     }
-  }
-
-  // User login
-  async login(req: Request, res: Response): Promise<void> {
+  }  // User login
+  async login(req: Request, res: Response): Promise<Response | void> {
     try {
       const { email, password }: LoginCredentials = req.body;
+      
+      logger.info(`Login attempt for email: ${email}`);
 
       // Find user by email
       const user = await db.getUserByEmail(email.toLowerCase());
       if (!user) {
+        logger.warn(`Login failed: User not found for email ${email}`);
         recordFailedLogin(req);
         return res.status(401).json(
           responseUtils.error('Invalid email or password')
         );
       }
+      
+      logger.info(`User found for email: ${email}, checking password`);
 
       // Verify password
       const isPasswordValid = await passwordUtils.compare(password, user.password_hash);
       if (!isPasswordValid) {
+        logger.warn(`Login failed: Invalid password for user ${email}`);
         recordFailedLogin(req);
         return res.status(401).json(
           responseUtils.error('Invalid email or password')
@@ -136,24 +140,30 @@ export class AuthController {
         responseUtils.error('Login failed')
       );
     }
-  }
-
-  // Get current user profile
-  async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  }  // Get current user profile
+  async getProfile(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
+      logger.info(`GetProfile request received, user attached: ${req.user ? 'Yes' : 'No'}`);
+      
       if (!req.user) {
+        logger.warn('User not authenticated in getProfile');
         return res.status(401).json(
           responseUtils.error('User not authenticated')
         );
       }
+      
+      logger.info(`Getting profile for user ID: ${req.user.id}, email: ${req.user.email}`);
 
       // Get fresh user data from database
       const user = await db.getUserById(req.user.id);
       if (!user) {
+        logger.warn(`User not found in database for ID: ${req.user.id}`);
         return res.status(404).json(
           responseUtils.error('User not found')
         );
       }
+      
+      logger.info(`Profile found for user: ${user.email}`);
 
       // Remove sensitive data
       const { password_hash, ...userResponse } = user;
@@ -169,9 +179,8 @@ export class AuthController {
       );
     }
   }
-
   // Update user profile
-  async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateProfile(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -202,9 +211,8 @@ export class AuthController {
       );
     }
   }
-
   // Change password
-  async changePassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async changePassword(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -255,9 +263,8 @@ export class AuthController {
       );
     }
   }
-
   // Refresh token
-  async refreshToken(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async refreshToken(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -286,9 +293,8 @@ export class AuthController {
       );
     }
   }
-
   // Logout (client-side token invalidation)
-  async logout(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async logout(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       // In a JWT-based system, logout is typically handled client-side
       // by removing the token from storage. However, we can log the event.
@@ -308,9 +314,8 @@ export class AuthController {
       );
     }
   }
-
   // Verify token (for client-side token validation)
-  async verifyToken(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async verifyToken(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(

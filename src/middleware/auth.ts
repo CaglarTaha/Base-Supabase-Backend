@@ -8,9 +8,11 @@ export const authenticate = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+): Promise<Response | void> => {
   try {
     const authHeader = req.headers.authorization;
+    
+    logger.debug(`Auth header: ${authHeader ? 'Present' : 'Missing'}`);
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json(
@@ -19,6 +21,8 @@ export const authenticate = async (
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    logger.debug(`Token: ${token ? token.substring(0, 10) + '...' : 'Missing'}`);
 
     if (!token) {
       return res.status(401).json(
@@ -30,7 +34,9 @@ export const authenticate = async (
     let decoded;
     try {
       decoded = jwtUtils.verify(token);
+      logger.debug(`Token verified, decoded userId: ${decoded?.userId}`);
     } catch (error: any) {
+      logger.error(`Token verification error: ${error.name} - ${error.message}`);
       if (error.name === 'TokenExpiredError') {
         return res.status(401).json(
           responseUtils.error('Access token has expired')
@@ -42,19 +48,26 @@ export const authenticate = async (
         );
       }
       throw error;
-    }
-
-    // Get user from database
+    }    // Get user from database
     const user = await db.getUserById(decoded.userId);
+    
+    logger.debug(`User lookup result: ${user ? 'Found' : 'Not found'} for userId: ${decoded.userId}`);
 
     if (!user) {
       return res.status(401).json(
         responseUtils.error('User not found')
       );
     }
+    
+    // Ensure user.id is a string
+    if (user.id && typeof user.id !== 'string') {
+      logger.debug(`Converting user.id from ${typeof user.id} to string`);
+      user.id = String(user.id);
+    }
 
     // Attach user to request object
     req.user = user;
+    logger.debug(`User attached to request: ${logger.userInfo(user)}`);
     next();
 
   } catch (error) {
@@ -120,34 +133,56 @@ export const requireAuth = (
 };
 
 // Middleware to check if user owns the resource
-export const requireOwnership = (resourceIdParam: string = 'id') => {
+export const requireOwnership = (resourceIdParam: string = 'id') => {  
   return async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
-  ): Promise<void> => {
+  ): Promise<Response | void> => {
     try {
+      logger.debug(`RequireOwnership middleware called for ${req.method} ${req.originalUrl}`);
+      logger.debug(`Checking ownership for param: ${resourceIdParam}`);
+      logger.debug(`User attached to request: ${req.user ? 'Yes' : 'No'}`);
+      
       if (!req.user) {
+        logger.warn('Authentication required: No user attached to request');
         return res.status(401).json(
           responseUtils.error('Authentication required')
         );
       }
 
       const resourceId = req.params[resourceIdParam];
+      logger.debug(`Resource ID from params (${resourceIdParam}): ${resourceId} (${typeof resourceId})`);
+      logger.debug(`User ID from token: ${req.user.id} (${typeof req.user.id})`);
+      logger.debug(`User role from token: ${req.user.role}`);
       
       if (!resourceId) {
+        logger.warn('Resource ID is missing from params');
         return res.status(400).json(
           responseUtils.error('Resource ID is required')
         );
       }
-
-      // For user profile routes, check if user is accessing their own profile
+        // For user profile routes, check if user is accessing their own profile
       if (resourceIdParam === 'userId' || resourceIdParam === 'id') {
-        if (req.user.id !== resourceId && req.user.role !== 'admin') {
+        logger.debug(`Checking if user ${req.user.id} has access to resource ${resourceId}`);
+        logger.debug(`Exact comparison: ${req.user.id === resourceId ? 'MATCH' : 'NO MATCH'}`);
+        logger.debug(`Loose comparison: ${req.user.id == resourceId ? 'MATCH' : 'NO MATCH'}`);
+        
+        // Try both string comparison and more flexible comparison for safety
+        // This handles the case where one might be a string and one a UUID object
+        const isExactMatch = req.user.id === resourceId;
+        const isLooseMatch = String(req.user.id) === String(resourceId);
+        
+        logger.debug(`isExactMatch: ${isExactMatch}, isLooseMatch: ${isLooseMatch}`);
+        
+        if (!isExactMatch && !isLooseMatch && req.user.role !== 'admin') {
+          logger.warn(`Access denied: User ${req.user.id} (role: ${req.user.role}) cannot access resource ${resourceId}`);
           return res.status(403).json(
             responseUtils.error('Access denied: You can only access your own resources')
           );
         }
+        
+        logger.debug(`Access granted: User ${req.user.id} (role: ${req.user.role}) can access resource ${resourceId}`);
       }
 
       // For file routes, check if user owns the file
@@ -185,7 +220,7 @@ export const rateLimitLogin = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Response | void => {
   const ip = req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
   const windowMs = 15 * 60 * 1000; // 15 minutes

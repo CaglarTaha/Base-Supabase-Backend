@@ -12,6 +12,11 @@ export interface User {
   created_at: string;
   updated_at: string;
   profile?: UserProfile;
+  deactivated_at?: string;  deactivated_by?: string;
+  activated_at?: string;
+  activated_by?: string;
+  password_reset_at?: string;
+  password_reset_by?: string;
 }
 
 export interface UserProfile {
@@ -96,7 +101,7 @@ export interface AuthenticatedRequest extends Request {
 
 export interface FileUploadRequest extends AuthenticatedRequest {
   file?: Express.Multer.File;
-  files?: Express.Multer.File[];
+  files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] };
 }
 
 // Database Types
@@ -136,6 +141,7 @@ export interface AdminStats {
 }
 
 export interface AdminUser extends User {
+  role: UserRole;
   last_login?: string;
   is_active: boolean;
   files_count: number;

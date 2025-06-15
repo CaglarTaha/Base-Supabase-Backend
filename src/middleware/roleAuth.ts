@@ -8,7 +8,7 @@ export const requireRole = (allowedRoles: UserRole | UserRole[]) => {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
-  ): void => {
+  ): Response | void => {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -59,7 +59,7 @@ export const requirePermission = (permission: string) => {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
-  ): void => {
+  ): Response | void => {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -122,7 +122,7 @@ export const requireResourceAccess = (resourceType: 'file' | 'user') => {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
-  ): void => {
+  ): Response | void => {
     try {
       if (!req.user) {
         return res.status(401).json(

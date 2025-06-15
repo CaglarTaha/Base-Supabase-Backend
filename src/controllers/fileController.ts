@@ -9,9 +9,8 @@ import {
   logger 
 } from '@/utils/helpers';
 
-export class FileController {
-  // Upload single file
-  async uploadFile(req: FileUploadRequest, res: Response): Promise<void> {
+export class FileController {  // Upload single file
+  async uploadFile(req: FileUploadRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -77,9 +76,8 @@ export class FileController {
   }
 
   // Upload multiple files
-  async uploadMultipleFiles(req: FileUploadRequest, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
+  async uploadMultipleFiles(req: FileUploadRequest, res: Response): Promise<Response | void> {
+    try {      if (!req.user) {
         return res.status(401).json(
           responseUtils.error('User not authenticated')
         );
@@ -160,7 +158,7 @@ export class FileController {
   }
 
   // Get user's files with pagination
-  async getUserFiles(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getUserFiles(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -195,7 +193,7 @@ export class FileController {
   }
 
   // Get file by ID
-  async getFileById(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getFileById(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -232,7 +230,7 @@ export class FileController {
   }
 
   // Download file
-  async downloadFile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async downloadFile(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -293,7 +291,7 @@ export class FileController {
   }
 
   // Delete file
-  async deleteFile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async deleteFile(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -350,7 +348,7 @@ export class FileController {
   }
 
   // Get file statistics for user
-  async getFileStats(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getFileStats(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(

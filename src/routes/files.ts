@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import multer from 'multer';
 import { fileController } from '@/controllers/fileController';
 import { authenticate, requireOwnership } from '@/middleware/auth';
@@ -32,21 +32,19 @@ const upload = multer({
 
 // File upload routes
 router.post(
-  '/upload',
-  authenticate,
+  '/upload',  authenticate,
   upload.single('file'),
   validateFileUpload,
   validate(validationSchemas.fileUpload),
-  fileController.uploadFile
+  fileController.uploadFile as RequestHandler
 );
 
 router.post(
-  '/upload-multiple',
-  authenticate,
+  '/upload-multiple',  authenticate,
   upload.array('files', 10),
   validateFileUpload,
   validate(validationSchemas.fileUpload),
-  fileController.uploadMultipleFiles
+  fileController.uploadMultipleFiles as RequestHandler
 );
 
 // File management routes

@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { ApiResponse, AppError } from '@/types';
@@ -6,13 +6,56 @@ import { ApiResponse, AppError } from '@/types';
 // JWT utilities
 export const jwtUtils = {
   sign: (payload: object, expiresIn?: string): string => {
-    return jwt.sign(payload, process.env.JWT_SECRET!, {
-      expiresIn: expiresIn || process.env.JWT_EXPIRES_IN || '7d'
-    });
+    // Use environment variable or fallback to a development secret
+    const secret = process.env.JWT_SECRET || 'your_strong_secret_key_for_development';
+    
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+    
+    // Log the payload being signed (for debugging)
+    logger.debug('JWT Payload for signing:', JSON.stringify(payload));
+    
+    // Ensure userId is a string to prevent comparison issues
+    if (payload && typeof payload === 'object' && 'userId' in payload) {
+      const typedPayload = payload as any;
+      if (typedPayload.userId && typeof typedPayload.userId !== 'string') {
+        logger.debug(`Converting userId from ${typeof typedPayload.userId} to string`);
+        typedPayload.userId = String(typedPayload.userId);
+      }
+    }
+    
+    // Define the expiration time string
+    const expiration = expiresIn || process.env.JWT_EXPIRES_IN || "7d";
+    
+    // Type assertion to handle the string expiration time
+    return jwt.sign(payload, secret, { expiresIn: expiration as any });
   },
 
   verify: (token: string): any => {
-    return jwt.verify(token, process.env.JWT_SECRET!);
+    const secret = process.env.JWT_SECRET || 'your_strong_secret_key_for_development';
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+    
+    try {
+      const decoded = jwt.verify(token, secret);
+      logger.debug('JWT Decoded:', JSON.stringify(decoded));
+      
+      // Ensure userId is a string to prevent comparison issues
+      if (decoded && typeof decoded === 'object' && 'userId' in decoded) {
+        const typedDecoded = decoded as any;
+        if (typedDecoded.userId && typeof typedDecoded.userId !== 'string') {
+          logger.debug(`Converting decoded userId from ${typeof typedDecoded.userId} to string`);
+          typedDecoded.userId = String(typedDecoded.userId);
+        }
+      }
+      
+      return decoded;
+    } catch (error) {
+      logger.error('JWT Verification Error:', error);
+      throw error;
+    }
   },
 
   decode: (token: string): any => {
@@ -26,9 +69,18 @@ export const passwordUtils = {
     const saltRounds = 12;
     return bcrypt.hash(password, saltRounds);
   },
-
   compare: async (password: string, hash: string): Promise<boolean> => {
-    return bcrypt.compare(password, hash);
+    try {
+      if (!password || !hash) {
+        logger.error(`Password comparison error: ${!password ? 'Password is empty' : 'Hash is empty'}`);
+        return false;
+      }
+      logger.debug(`Comparing password (length: ${password.length}) with hash (length: ${hash.length})`);
+      return await bcrypt.compare(password, hash);
+    } catch (error) {
+      logger.error('Password comparison error:', error);
+      return false;
+    }
   }
 };
 
@@ -190,8 +242,12 @@ export const logger = {
   },
 
   debug: (message: string, meta?: any) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production') {
       console.debug(`[DEBUG] ${new Date().toISOString()}: ${message}`, meta || '');
     }
+  },
+    userInfo: (user: any) => {
+    if (!user) return 'No user';
+    return `User[id:${user.id}, email:${user.email}, role:${user.role}]`;
   }
 };

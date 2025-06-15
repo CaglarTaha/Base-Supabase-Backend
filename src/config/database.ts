@@ -1,5 +1,6 @@
 import { supabase, adminSupabase } from './supabase';
 import { User, UserProfile, FileUpload, PaginationQuery, PaginationMeta } from '@/types';
+import { logger } from '@/utils/helpers';
 
 export class DatabaseService {
   // User operations
@@ -22,34 +23,61 @@ export class DatabaseService {
 
     if (error) throw error;
     return data;
+  }  async getUserById(id: string): Promise<User | null> {
+    try {
+      logger.debug(`Looking up user by ID: ${id}`);
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          profile:user_profiles(*)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        logger.error(`Error fetching user by ID ${id}:`, error);
+        return null;
+      }
+      
+      logger.debug(`User data for ID ${id}:`, data ? 'Found' : 'Not found');
+      
+      if (data) {
+        // Ensure user id is a string
+        if (data.id && typeof data.id !== 'string') {
+          logger.debug(`Converting database user.id from ${typeof data.id} to string`);
+          data.id = String(data.id);
+        }
+      }
+      
+      return data;
+    } catch (err) {
+      logger.error(`Exception in getUserById for ${id}:`, err);
+      return null;
+    }
   }
-
-  async getUserById(id: string): Promise<User | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        *,
-        profile:user_profiles(*)
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error) return null;
-    return data;
-  }
-
   async getUserByEmail(email: string): Promise<User | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        *,
-        profile:user_profiles(*)
-      `)
-      .eq('email', email)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          profile:user_profiles(*)
+        `)
+        .eq('email', email)
+        .single();
 
-    if (error) return null;
-    return data;
+      if (error) {
+        console.error(`Error fetching user by email ${email}:`, error);
+        return null;
+      }
+      
+      console.log(`User data for ${email}:`, data ? 'Found' : 'Not found');
+      return data;
+    } catch (err) {
+      console.error(`Exception in getUserByEmail for ${email}:`, err);
+      return null;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | null> {

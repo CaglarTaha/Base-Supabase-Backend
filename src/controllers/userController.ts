@@ -8,9 +8,8 @@ import {
   logger 
 } from '@/utils/helpers';
 
-export class UserController {
-  // Get user profile by ID
-  async getUserById(req: AuthenticatedRequest, res: Response): Promise<void> {
+export class UserController {  // Get user profile by ID
+  async getUserById(req: AuthenticatedRequest, res: Response): Promise<Response | void>  {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -43,7 +42,7 @@ export class UserController {
   }
 
   // Update user profile
-  async updateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateUser(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -112,7 +111,7 @@ export class UserController {
   }
 
   // Update user profile (extended)
-  async updateUserProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateUserProfile(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -155,7 +154,7 @@ export class UserController {
   }
 
   // Delete user (soft delete - deactivate)
-  async deleteUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async deleteUser(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -202,7 +201,7 @@ export class UserController {
   }
 
   // Get user's files
-  async getUserFiles(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getUserFiles(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -247,7 +246,7 @@ export class UserController {
   }
 
   // Search users (admin/moderator only)
-  async searchUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async searchUsers(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(
@@ -313,7 +312,7 @@ export class UserController {
   }
 
   // Get user activity/statistics
-  async getUserActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getUserActivity(req: AuthenticatedRequest, res: Response): Promise<Response | void> {
     try {
       if (!req.user) {
         return res.status(401).json(

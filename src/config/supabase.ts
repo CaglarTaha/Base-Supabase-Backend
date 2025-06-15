@@ -1,17 +1,27 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { DatabaseConfig } from '@/types';
+import dotenv from 'dotenv';
+
+// Load environment variables early
+dotenv.config();
 
 class SupabaseConfig {
   private static instance: SupabaseConfig;
   private supabase: SupabaseClient;
   private adminSupabase: SupabaseClient;
-
   private constructor() {
+    // Hardcoded fallbacks in case environment variables are not loaded
     const config: DatabaseConfig = {
-      url: "https://cuypguwrnuvofkmzlbnq.supabase.co",
-      apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eXBndXdybnV2b2ZrbXpsYm5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NjQ5NzEsImV4cCI6MjA2NTM0MDk3MX0.rPQLxKYId5jsacv2fl-tshlR6tFncIMkt6Tbk7EkWXQ",
-      serviceRoleKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eXBndXdybnV2b2ZrbXpsYm5xIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTc2NDk3MSwiZXhwIjoyMDY1MzQwOTcxfQ.bh3Qa-SZvernBEEhkYVlAyoMoins--i4Xkgkf4s4_QE"
+      url: process.env.DATABASE_URL || "",
+      apiKey: process.env.API_KEY || "",
+      serviceRoleKey: process.env.SERVICE_ROLE_KEY || ""
     };
+
+    console.log("Supabase configuration:", {
+      url: config.url,
+      apiKeyLength: config.apiKey ? config.apiKey.length : 0,
+      serviceRoleKeyLength: config.serviceRoleKey ? config.serviceRoleKey.length : 0
+    });
 
     if (!config.url || !config.apiKey || !config.serviceRoleKey) {
       throw new Error('Supabase configuration is missing required environment variables');
